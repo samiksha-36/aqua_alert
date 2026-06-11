@@ -59,7 +59,7 @@ function DemoTrigger() {
     setLoading(true);
     setMsg('');
     try {
-      const r = await fetch('/api/alerts/demo/trigger', { method: 'POST' });
+      const r = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/alerts/demo/trigger`, { method: 'POST' });
       const d = await r.json();
       setMsg(d.success ? '✅ Alert triggered!' : '❌ Failed');
     } catch {
