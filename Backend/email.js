@@ -1,5 +1,11 @@
 import { Resend } from 'resend';
 
+// lazy init — won't crash at startup if key missing
+function getResend() {
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const RISK_COLORS = {
