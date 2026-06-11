@@ -1,0 +1,44 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* ── Badge system — used in AlertFeed, GroundTruthPanel, GrievanceTracker ── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Risk levels */
+.badge-LOW        { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+.badge-MODERATE   { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+.badge-HIGH       { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+.badge-CRITICAL   { background: #f5f3ff; color: #7c3aed; border: 1px solid #c4b5fd; }
+
+/* Statuses */
+.badge-GENERATED  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.badge-DISPATCHED { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+.badge-ESCALATED  { background: #f5f3ff; color: #7c3aed; border: 1px solid #c4b5fd; }
+.badge-RESOLVED   { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+.badge-DISMISSED  { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
+.badge-MONITOR    { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+
+/* Severity aliases (used in GrievanceTracker) */
+.badge-MEDIUM     { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+
+/* Scrollbar */
+::-webkit-scrollbar        { width: 6px; }
+::-webkit-scrollbar-track  { background: #f1f5f9; }
+::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 99px; }
