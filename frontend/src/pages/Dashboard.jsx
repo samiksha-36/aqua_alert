@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const RISK_COLOR = {
   LOW: '#16a34a', MODERATE: '#d97706', HIGH: '#dc2626', CRITICAL: '#7c3aed',
@@ -13,7 +14,6 @@ export default function Dashboard({ alerts, stats }) {
   const [pipelineStatus, setPipelineStatus]     = useState(null);
 
   useEffect(() => {
-    // Load grievance counts
     fetch('/api/grievances?limit=100')
       .then(r => r.json())
       .then(d => {
@@ -28,7 +28,6 @@ export default function Dashboard({ alerts, stats }) {
       })
       .catch(() => {});
 
-    // Check pipeline health
     fetch('http://localhost:8000/health')
       .then(r => r.json())
       .then(d => setPipelineStatus(d.status === 'ok' ? 'online' : 'offline'))
@@ -53,7 +52,6 @@ export default function Dashboard({ alerts, stats }) {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Background watermark */}
         <div style={{
           position: 'absolute', right: 32, top: '50%',
           transform: 'translateY(-50%)',
@@ -80,7 +78,6 @@ export default function Dashboard({ alerts, stats }) {
             </div>
           </div>
 
-          {/* System status */}
           <div style={{
             background: 'rgba(255,255,255,0.08)',
             borderRadius: 12,
@@ -91,22 +88,22 @@ export default function Dashboard({ alerts, stats }) {
             <p style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
               System Status
             </p>
-            <StatusRow label="Backend API"    status="online"                  />
-            <StatusRow label="LangGraph"      status={pipelineStatus || 'checking'} />
-            <StatusRow label="WebSocket"      status="online"                  />
-            <StatusRow label="Supabase DB"    status="online"                  />
+            <StatusRow label="Backend API" status="online" />
+            <StatusRow label="LangGraph"   status={pipelineStatus || 'checking'} />
+            <StatusRow label="WebSocket"   status="online" />
+            <StatusRow label="Supabase DB" status="online" />
           </div>
         </div>
       </div>
 
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
-        <KPICard label="Total Alerts"      value={stats.total}       color="#3b82f6" icon="🚨" />
-        <KPICard label="Active"            value={stats.active}      color="#f59e0b" icon="⚡" />
-        <KPICard label="Critical"          value={criticalCount}     color="#7c3aed" icon="🟣" />
-        <KPICard label="Flood Alerts"      value={floodCount}        color="#0ea5e9" icon="🌊" />
-        <KPICard label="Drought Alerts"    value={droughtCount}      color="#f97316" icon="🌵" />
-        <KPICard label="Ground Confirmed"  value={confirmedLoop}     color="#16a34a" icon="✅" />
+        <KPICard label="Total Alerts"     value={stats.total}     color="#3b82f6" icon="🚨" />
+        <KPICard label="Active"           value={stats.active}    color="#f59e0b" icon="⚡" />
+        <KPICard label="Critical"         value={criticalCount}   color="#7c3aed" icon="🟣" />
+        <KPICard label="Flood Alerts"     value={floodCount}      color="#0ea5e9" icon="🌊" />
+        <KPICard label="Drought Alerts"   value={droughtCount}    color="#f97316" icon="🌵" />
+        <KPICard label="Ground Confirmed" value={confirmedLoop}   color="#16a34a" icon="✅" />
       </div>
 
       {/* Main grid */}
@@ -135,9 +132,9 @@ export default function Dashboard({ alerts, stats }) {
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                 <GrievanceStat label="Total Received" value={grievanceSummary.total}      color="#3b82f6" />
-                <GrievanceStat label="Resolved"       value={grievanceSummary.resolved}    color="#16a34a" />
-                <GrievanceStat label="In Progress"    value={grievanceSummary.inProgress}  color="#f59e0b" />
-                <GrievanceStat label="Critical"       value={grievanceSummary.critical}    color="#dc2626" />
+                <GrievanceStat label="Resolved"       value={grievanceSummary.resolved}   color="#16a34a" />
+                <GrievanceStat label="In Progress"    value={grievanceSummary.inProgress} color="#f59e0b" />
+                <GrievanceStat label="Critical"       value={grievanceSummary.critical}   color="#dc2626" />
               </div>
               {grievanceSummary.total > 0 && (
                 <div>
@@ -160,6 +157,12 @@ export default function Dashboard({ alerts, stats }) {
           )}
         </div>
 
+      </div>
+
+      {/* Charts */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
+        <SectionHeader title="Analytics" subtitle="Live alert data visualized" icon="📊" />
+        <AlertCharts alerts={alerts} />
       </div>
 
       {/* Data pipeline flow */}
@@ -312,15 +315,105 @@ function GrievanceStat({ label, value, color }) {
   );
 }
 
+function AlertCharts({ alerts }) {
+  const typeData = [
+    { name: 'Flood',    value: alerts.filter(a => a.alertType === 'FLOOD').length    || 0 },
+    { name: 'Drought',  value: alerts.filter(a => a.alertType === 'DROUGHT').length  || 0 },
+    { name: 'Scarcity', value: alerts.filter(a => a.alertType === 'SCARCITY').length || 0 },
+  ].filter(d => d.value > 0);
+
+  const riskData = [
+    { name: 'Low',      value: alerts.filter(a => a.riskLevel === 'LOW').length      },
+    { name: 'Moderate', value: alerts.filter(a => a.riskLevel === 'MODERATE').length },
+    { name: 'High',     value: alerts.filter(a => a.riskLevel === 'HIGH').length     },
+    { name: 'Critical', value: alerts.filter(a => a.riskLevel === 'CRITICAL').length },
+  ];
+
+  const trendData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const label = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const count = alerts.filter(a => {
+      const ad = new Date(a.createdAt);
+      return ad.toDateString() === d.toDateString();
+    }).length;
+    return { date: label, alerts: count };
+  });
+
+  const PIE_COLORS = ['#0ea5e9', '#f97316', '#8b5cf6'];
+  const BAR_COLORS = { Low: '#16a34a', Moderate: '#f59e0b', High: '#ef4444', Critical: '#7c3aed' };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginTop: 16 }}>
+
+      {/* Line chart */}
+      <div style={{ border: '1px solid #f1f5f9', borderRadius: 12, padding: 16 }}>
+        <SectionHeader title="Alert Trend" subtitle="Last 7 days" icon="📈" />
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Line type="monotone" dataKey="alerts" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Pie chart */}
+      <div style={{ border: '1px solid #f1f5f9', borderRadius: 12, padding: 16 }}>
+        <SectionHeader title="Alert Types" subtitle="Flood vs Drought vs Scarcity" icon="🥧" />
+        {typeData.length === 0 ? (
+          <EmptyState icon="🥧" text="No alert data yet" />
+        ) : (
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie
+                data={typeData}
+                cx="50%" cy="50%"
+                outerRadius={65}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
+                labelLine={false}
+                fontSize={10}
+              >
+                {typeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Bar chart */}
+      <div style={{ border: '1px solid #f1f5f9', borderRadius: 12, padding: 16 }}>
+        <SectionHeader title="Risk Levels" subtitle="Distribution across alerts" icon="📊" />
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={riskData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {riskData.map((entry) => (
+                <Cell key={entry.name} fill={BAR_COLORS[entry.name]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+    </div>
+  );
+}
+
 function PipelineFlow() {
   const steps = [
-    { icon: '🛰️', label: 'Open-Meteo API',    sub: 'Live rainfall, temp, soil moisture',    color: '#0ea5e9' },
-    { icon: '✅', label: 'Validate',           sub: 'Clean + score each district',           color: '#6366f1' },
-    { icon: '📚', label: 'Historical Context', sub: 'Compare vs 10yr IMD normals',           color: '#8b5cf6' },
-    { icon: '📊', label: 'Impact Analysis',    sub: 'Risk level + cascade scoring',          color: '#f59e0b' },
-    { icon: '🤖', label: 'Gemini Alert',       sub: 'Trilingual EN/HI/Regional text',        color: '#ec4899' },
-    { icon: '🔍', label: 'Confidence Check',   sub: 'Filter low-quality alerts',             color: '#14b8a6' },
-    { icon: '📱', label: 'Dispatch',           sub: 'WhatsApp to reporters + panchayat',     color: '#16a34a' },
+    { icon: '🛰️', label: 'Open-Meteo API',    sub: 'Live rainfall, temp, soil moisture', color: '#0ea5e9' },
+    { icon: '✅', label: 'Validate',           sub: 'Clean + score each district',        color: '#6366f1' },
+    { icon: '📚', label: 'Historical Context', sub: 'Compare vs 10yr IMD normals',        color: '#8b5cf6' },
+    { icon: '📊', label: 'Impact Analysis',    sub: 'Risk level + cascade scoring',       color: '#f59e0b' },
+    { icon: '🤖', label: 'Gemini Alert',       sub: 'Trilingual EN/HI/Regional text',     color: '#ec4899' },
+    { icon: '🔍', label: 'Confidence Check',   sub: 'Filter low-quality alerts',          color: '#14b8a6' },
+    { icon: '📱', label: 'Dispatch',           sub: 'WhatsApp to reporters + panchayat',  color: '#16a34a' },
   ];
 
   return (
@@ -354,7 +447,7 @@ function PipelineFlow() {
 function LoopCard({ label, desc, icon, color, step }) {
   return (
     <div style={{
-      border: `1px solid #e2e8f0`,
+      border: '1px solid #e2e8f0',
       borderTop: `3px solid ${color}`,
       borderRadius: 12,
       padding: '16px',
