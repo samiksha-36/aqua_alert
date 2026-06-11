@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+
 export default function useWebSocket(setAlerts) {
   const wsRef = useRef(null);
 
   useEffect(() => {
     const connect = () => {
-      const ws = new WebSocket(`ws://${window.location.hostname}:5000/ws`);
+      const wsUrl = BACKEND_URL
+        ? BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws'
+        : `ws://${window.location.hostname}:5000/ws`;
+
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onmessage = (e) => {
@@ -46,7 +52,7 @@ export default function useWebSocket(setAlerts) {
         }
       };
 
-      ws.onclose = () => setTimeout(connect, 3000); // auto-reconnect
+      ws.onclose = () => setTimeout(connect, 3000);
     };
 
     connect();

@@ -14,7 +14,7 @@ export default function Dashboard({ alerts, stats }) {
   const [pipelineStatus, setPipelineStatus]     = useState(null);
 
   useEffect(() => {
-    fetch('/api/grievances?limit=100')
+    fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/grievances?limit=100`)
       .then(r => r.json())
       .then(d => {
         if (!d.success) return;

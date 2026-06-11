@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+
 export default function useAlerts() {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    fetch('/api/alerts?limit=100')
+    fetch(`${BACKEND_URL}/api/alerts?limit=100`)
       .then(r => r.json())
       .then(d => { if (d.success) setAlerts(d.alerts); })
       .catch(console.error);
