@@ -1,91 +1,85 @@
 import { useState } from 'react';
 
-const RISK_COLOR = { LOW: '#16a34a', MODERATE: '#d97706', HIGH: '#dc2626', CRITICAL: '#7c3aed' };
-const RISK_BG    = { LOW: '#f0fdf4', MODERATE: '#fffbeb', HIGH: '#fef2f2', CRITICAL: '#f5f3ff' };
+const RISK_HEX = { LOW: '#276749', MODERATE: '#b7791f', HIGH: '#c53030', CRITICAL: '#553c9a' };
 
 export default function AlertFeed({ alerts }) {
   const [selected, setSelected] = useState(null);
 
   if (!alerts.length) return (
-    <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-      <p style={{ fontSize: 40 }}>🌊</p>
-      <p style={{ marginTop: 12, fontSize: 14 }}>No alerts yet. Trigger a demo alert from the sidebar.</p>
+    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-3)' }}>
+      <p style={{ fontSize: 13 }}>No alerts yet. Trigger a demo alert from the sidebar.</p>
     </div>
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 20 }}>
-      {/* List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {alerts.map(alert => (
           <AlertCard
             key={alert.alertId}
             alert={alert}
             isSelected={selected?.alertId === alert.alertId}
-            onClick={() => setSelected(prev => prev?.alertId === alert.alertId ? null : alert)}
+            onClick={() => setSelected(p => p?.alertId === alert.alertId ? null : alert)}
           />
         ))}
       </div>
-
-      {/* Detail Panel */}
-      {selected && <AlertDetail alert={alerts.find(a => a.alertId === selected.alertId) || selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <AlertDetail
+          alert={alerts.find(a => a.alertId === selected.alertId) || selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
 
 function AlertCard({ alert, isSelected, onClick }) {
-  const color    = RISK_COLOR[alert.riskLevel] || '#dc2626';
-  const bg       = RISK_BG[alert.riskLevel]   || '#fef2f2';
-  const conf     = Math.round((alert.currentConfidence || 0) * 100);
-  const typeEmoji = alert.alertType === 'FLOOD' ? '🌊' : alert.alertType === 'DROUGHT' ? '🌵' : '💧';
+  const color = RISK_HEX[alert.riskLevel] || '#c53030';
+  const conf  = Math.round((alert.currentConfidence || 0) * 100);
+  const type  = alert.alertType === 'FLOOD' ? 'Flood' : alert.alertType === 'DROUGHT' ? 'Drought' : 'Groundwater';
 
   return (
-    <div onClick={onClick} style={{
-      background: '#fff',
-      border: `1px solid ${isSelected ? color : '#e2e8f0'}`,
-      borderLeft: `4px solid ${color}`,
-      borderRadius: 10,
+    <div onClick={onClick} className="fade-up" style={{
+      background: 'var(--surface)',
+      border: `1px solid ${isSelected ? color + '60' : 'var(--border)'}`,
+      borderLeft: `3px solid ${color}`,
+      borderRadius: 8,
       padding: '14px 18px',
       cursor: 'pointer',
-      transition: 'all 0.15s',
-      boxShadow: isSelected ? `0 4px 16px ${bg}` : 'none',
+      transition: 'border-color 0.15s',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 22 }}>{typeEmoji}</span>
-          <div>
-            <p style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>
-              {alert.district}, {alert.state}
-            </p>
-            <p style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
-              {alert.alertId} · {new Date(alert.createdAt).toLocaleString('en-IN', { timeStyle: 'short', dateStyle: 'short' })}
-            </p>
-          </div>
+        <div>
+          <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>
+            {alert.district}, {alert.state}
+          </p>
+          <p style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3, fontFamily: 'var(--mono)' }}>
+            {alert.alertId} · {type} · {new Date(alert.createdAt).toLocaleString('en-IN', { timeStyle: 'short', dateStyle: 'short' })}
+          </p>
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           <span className={`badge badge-${alert.riskLevel}`}>{alert.riskLevel}</span>
           <span className={`badge badge-${alert.status}`}>{alert.status}</span>
         </div>
       </div>
 
-      {/* Confidence bar */}
+      {/* Confidence */}
       <div style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 11, color: '#64748b' }}>Confidence</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color }}>{conf}% ({alert.confidenceLabel})</span>
+          <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Confidence</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color }}>{conf}%</span>
         </div>
-        <div style={{ height: 5, background: '#f1f5f9', borderRadius: 99 }}>
-          <div style={{ height: '100%', width: `${conf}%`, background: color, borderRadius: 99, transition: 'width 0.5s ease' }} />
+        <div style={{ height: 4, background: 'var(--canvas)', borderRadius: 99 }}>
+          <div style={{ height: '100%', width: `${conf}%`, background: color, borderRadius: 99, transition: 'width 0.5s' }} />
         </div>
       </div>
 
-      {/* Reporter status */}
+      {/* Reporters */}
       {alert.reportersPinged > 0 && (
-        <div style={{ marginTop: 10, display: 'flex', gap: 12, fontSize: 11, color: '#64748b' }}>
-          <span>📡 {alert.reportersPinged} pinged</span>
-          <span>✅ {alert.reportersConfirmed || 0} confirmed</span>
-          <span>⏳ {(alert.reportersPinged || 0) - (alert.reportersConfirmed || 0) - (alert.reporterResponses?.filter(r => r.response === 'NO').length || 0)} pending</span>
+        <div style={{ marginTop: 10, display: 'flex', gap: 16, fontSize: 10, color: 'var(--text-3)' }}>
+          <span>{alert.reportersPinged} reporters pinged</span>
+          <span>{alert.reportersConfirmed || 0} confirmed</span>
+          <span>{(alert.reportersPinged || 0) - (alert.reportersConfirmed || 0) - (alert.reporterResponses?.filter(r => r.response === 'NO').length || 0)} pending</span>
         </div>
       )}
     </div>
@@ -95,7 +89,7 @@ function AlertCard({ alert, isSelected, onClick }) {
 function AlertDetail({ alert, onClose }) {
   const [simLoading, setSimLoading] = useState(null);
   const [simMsg, setSimMsg] = useState('');
-  const color = RISK_COLOR[alert.riskLevel] || '#dc2626';
+  const color = RISK_HEX[alert.riskLevel] || '#c53030';
 
   async function simulateResponse(phone, response) {
     setSimLoading(phone + response);
@@ -106,82 +100,107 @@ function AlertDetail({ alert, onClose }) {
         body: JSON.stringify({ alertId: alert.alertId, phone, response }),
       });
       const d = await r.json();
-      setSimMsg(d.success ? `✅ ${response} recorded — confidence now ${Math.round(d.newConfidence * 100)}%` : '❌ ' + d.error);
-    } catch { setSimMsg('❌ Error'); }
+      setSimMsg(d.success ? `Recorded. Confidence now ${Math.round(d.newConfidence * 100)}%` : d.error);
+    } catch { setSimMsg('Connection error'); }
     finally { setSimLoading(null); setTimeout(() => setSimMsg(''), 4000); }
   }
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, position: 'sticky', top: 0, height: 'fit-content', maxHeight: '85vh', overflowY: 'auto' }}>
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderTop: `3px solid ${color}`,
+      borderRadius: 8, padding: 20,
+      position: 'sticky', top: 0,
+      maxHeight: '85vh', overflowY: 'auto',
+    }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Alert Detail</h3>
-        <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#94a3b8' }}>✕</button>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
+            {alert.district}, {alert.state}
+          </p>
+          <p style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+            {alert.alertId}
+          </p>
+        </div>
+        <button onClick={onClose} style={{
+          border: 'none', background: 'none', cursor: 'pointer',
+          fontSize: 16, color: 'var(--text-3)', padding: '0 4px',
+        }}>×</button>
+      </div>
+
+      {/* Status row */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <span className={`badge badge-${alert.riskLevel}`}>{alert.riskLevel}</span>
+        <span className={`badge badge-${alert.status}`}>{alert.status}</span>
+        <span className={`badge badge-${alert.alertType}`} style={{ background: 'var(--blue-light)', color: 'var(--blue)' }}>
+          {alert.alertType}
+        </span>
       </div>
 
       {/* Alert text */}
       {alert.alertText?.en && (
-        <div style={{ background: '#fffbeb', borderLeft: '3px solid #f59e0b', padding: '10px 14px', borderRadius: 4, marginBottom: 14 }}>
-          <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6 }}>{alert.alertText.en}</p>
+        <div style={{ background: 'var(--amber-light)', borderLeft: '3px solid var(--amber)', padding: '10px 12px', borderRadius: 4, marginBottom: 10 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--amber)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>English</p>
+          <p style={{ fontSize: 12, color: '#744210', lineHeight: 1.6 }}>{alert.alertText.en}</p>
         </div>
       )}
       {alert.alertText?.hi && (
-        <div style={{ background: '#eff6ff', borderLeft: '3px solid #3b82f6', padding: '10px 14px', borderRadius: 4, marginBottom: 14 }}>
-          <p style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.6 }}>{alert.alertText.hi}</p>
+        <div style={{ background: 'var(--blue-light)', borderLeft: '3px solid var(--blue)', padding: '10px 12px', borderRadius: 4, marginBottom: 14 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--blue)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hindi</p>
+          <p style={{ fontSize: 12, color: '#1e3a8a', lineHeight: 1.6 }}>{alert.alertText.hi}</p>
         </div>
       )}
 
-      {/* Trigger data */}
+      {/* Sensor data */}
       {alert.triggerData && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 14 }}>
           {[
-            { icon: '🌧️', val: `${alert.triggerData.rainfall_mm}mm`, label: 'Rainfall' },
-            { icon: '🌊', val: `${alert.triggerData.river_level_m}m`, label: 'River' },
-            { icon: '🌱', val: `${alert.triggerData.soil_moisture_pct}%`, label: 'Soil' },
-            { icon: '🌡️', val: `${alert.triggerData.temperature_c}°C`, label: 'Temp' },
+            { label: 'Rainfall',     val: `${alert.triggerData.rainfall_mm} mm`      },
+            { label: 'River Level',  val: `${alert.triggerData.river_level_m} m`     },
+            { label: 'Soil Moisture',val: `${alert.triggerData.soil_moisture_pct}%`  },
+            { label: 'Temperature',  val: `${alert.triggerData.temperature_c}°C`     },
           ].map(d => (
-            <div key={d.label} style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-              <p style={{ fontSize: 16 }}>{d.icon}</p>
-              <p style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{d.val}</p>
-              <p style={{ fontSize: 10, color: '#94a3b8' }}>{d.label}</p>
+            <div key={d.label} style={{ background: 'var(--canvas)', borderRadius: 6, padding: '8px 12px' }}>
+              <p style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 2 }}>{d.label}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', fontFamily: 'var(--mono)' }}>{d.val}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Reporter responses — simulate for demo */}
+      {/* Reporters */}
       {alert.reporterResponses?.length > 0 && (
         <div>
-          <p style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>
-            📡 Community Reporters
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+            Community Reporters
           </p>
           {alert.reporterResponses.map(r => (
-            <div key={r.phone} style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+            <div key={r.phone} style={{ background: 'var(--canvas)', borderRadius: 6, padding: '10px 12px', marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>{r.reporterName}</p>
-                  <p style={{ fontSize: 10, color: '#94a3b8' }}>{r.phone}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>{r.reporterName}</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--mono)' }}>{r.phone}</p>
                 </div>
-                <span className={`badge badge-${r.response === 'YES' ? 'HIGH' : r.response === 'NO' ? 'DISMISSED' : 'MONITOR'}`}>
-                  {r.response}
-                </span>
+                <span className={`badge badge-${r.response}`}>{r.response}</span>
               </div>
-
-              {/* Simulate buttons for demo */}
               {r.response === 'PENDING' && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                   <button onClick={() => simulateResponse(r.phone, 'YES')} disabled={!!simLoading} style={{
-                    flex: 1, padding: '5px 0', background: '#dcfce7', border: '1px solid #86efac',
-                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#15803d', cursor: 'pointer',
-                  }}>✅ हाँ (Simulate)</button>
+                    flex: 1, padding: '5px 0', background: 'var(--green-light)',
+                    border: '1px solid #9ae6b4', borderRadius: 5,
+                    fontSize: 11, fontWeight: 600, color: 'var(--green)', cursor: 'pointer',
+                  }}>Yes — हाँ</button>
                   <button onClick={() => simulateResponse(r.phone, 'NO')} disabled={!!simLoading} style={{
-                    flex: 1, padding: '5px 0', background: '#fee2e2', border: '1px solid #fca5a5',
-                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#dc2626', cursor: 'pointer',
-                  }}>❌ नहीं (Simulate)</button>
+                    flex: 1, padding: '5px 0', background: 'var(--red-light)',
+                    border: '1px solid #feb2b2', borderRadius: 5,
+                    fontSize: 11, fontWeight: 600, color: 'var(--red)', cursor: 'pointer',
+                  }}>No — नहीं</button>
                 </div>
               )}
             </div>
           ))}
-          {simMsg && <p style={{ fontSize: 11, color: '#16a34a', marginTop: 4 }}>{simMsg}</p>}
+          {simMsg && <p style={{ fontSize: 10, color: 'var(--green)', marginTop: 4 }}>{simMsg}</p>}
         </div>
       )}
     </div>

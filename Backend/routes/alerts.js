@@ -139,37 +139,83 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/alerts/demo/trigger
+// POST /api/alerts/demo/trigger — uses REAL Open-Meteo data
 router.post('/demo/trigger', async (req, res) => {
   try {
-    const demos = [
-      { district: 'Ludhiana',  state: 'Punjab',    type: 'FLOOD',       rain: 187, river: 8.4, soil: 92 },
-      { district: 'Barmer',    state: 'Rajasthan', type: 'DROUGHT',     rain: 2,   river: 0.1, soil: 8  },
-      { district: 'Patiala',   state: 'Punjab',    type: 'FLOOD',       rain: 145, river: 7.1, soil: 88 },
-      { district: 'Jaisalmer', state: 'Rajasthan', type: 'GROUNDWATER', rain: 4,   river: 0.0, soil: 6  },
+    const DISTRICTS = [
+      { district: 'Ludhiana',  state: 'Punjab',    lat: 30.9,  lon: 75.85, riverWidth: 180 },
+      { district: 'Barmer',    state: 'Rajasthan', lat: 25.75, lon: 71.4,  riverWidth: 30  },
+      { district: 'Patiala',   state: 'Punjab',    lat: 30.33, lon: 76.4,  riverWidth: 120 },
+      { district: 'Jaisalmer', state: 'Rajasthan', lat: 26.92, lon: 70.9,  riverWidth: 20  },
     ];
 
-    const demo            = demos[Math.floor(Math.random() * demos.length)];
-    const riskLevel       = demo.rain > 150 || demo.soil > 85 ? 'HIGH' : 'MODERATE';
-    const confidence      = parseFloat((0.72 + Math.random() * 0.12).toFixed(3));
-    const alertId         = `AQA-DEMO-${Date.now()}`;
-    const emailRecipients = ['samikshakhaire05@gmail.com', 'kaushishsaksham@gmail.com'];
+    const demo = DISTRICTS[Math.floor(Math.random() * DISTRICTS.length)];
+
+    const weatherUrl =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${demo.lat}&longitude=${demo.lon}` +
+      `&daily=precipitation_sum,temperature_2m_max` +
+      `&current=soil_moisture_0_to_1cm` +
+      `&timezone=Asia/Kolkata&forecast_days=1`;
+
+    const floodUrl =
+      `https://flood-api.open-meteo.com/v1/flood` +
+      `?latitude=${demo.lat}&longitude=${demo.lon}` +
+      `&daily=river_discharge&forecast_days=1`;
+
+    const [weatherRes, floodRes] = await Promise.all([
+      fetch(weatherUrl),
+      fetch(floodUrl),
+    ]);
+
+    const weatherData = await weatherRes.json();
+    const floodData   = await floodRes.json();
+
+    const rainfall    = weatherData?.daily?.precipitation_sum?.[0]  ?? 0;
+    const temperature = weatherData?.daily?.temperature_2m_max?.[0] ?? 30;
+    const soilRaw     = weatherData?.current?.soil_moisture_0_to_1cm ?? 0.3;
+    const soilPct     = Math.min(Math.round(soilRaw * 100 * 10) / 10, 100);
+    const discharge   = floodData?.daily?.river_discharge?.[0] ?? null;
+    const riverLevel  = discharge && discharge > 0
+      ? Math.round(((discharge / demo.riverWidth) ** 0.6) * 100) / 100
+      : Math.round((rainfall / 20) * 100) / 100;
+
+    let riskScore = 0;
+    let alertType = 'FLOOD';
+
+    if (rainfall > 150) riskScore += 0.45;
+    else if (rainfall > 80) riskScore += 0.25;
+    if (riverLevel > 8) riskScore += 0.30;
+    else if (riverLevel > 6) riskScore += 0.15;
+    if (soilPct > 85) riskScore += 0.15;
+    if (rainfall < 5 && temperature > 38) { riskScore = Math.max(riskScore, 0.55); alertType = 'DROUGHT'; }
+    if (soilPct < 10) { riskScore = Math.max(riskScore, 0.50); alertType = alertType !== 'DROUGHT' ? 'GROUNDWATER' : 'DROUGHT'; }
+
+    riskScore = Math.min(riskScore, 1.0);
+
+    const riskLevel  = riskScore >= 0.85 ? 'CRITICAL' : riskScore >= 0.65 ? 'HIGH' : riskScore >= 0.50 ? 'MODERATE' : 'LOW';
+    const confidence = parseFloat((0.60 + riskScore * 0.35).toFixed(3));
+    const alertId    = `AQA-DEMO-${Date.now()}`;
+
+    const emailRecipients = process.env.ALERT_EMAIL_RECIPIENTS
+      ? process.env.ALERT_EMAIL_RECIPIENTS.split(',').map(e => e.trim())
+      : ['samikshakhaire05@gmail.com', 'kaushishsaksham@gmail.com'];
 
     const alertTexts = {
       FLOOD: {
-        en:       `Heavy rainfall of ${demo.rain}mm recorded in ${demo.district}. River levels at ${demo.river}m, approaching danger mark.`,
-        hi:       `${demo.district} में ${demo.rain}mm भारी वर्षा। नदी ${demo.river}m — तत्काल सावधानी।`,
-        regional: `${demo.district} ਵਿੱਚ ${demo.rain}mm ਭਾਰੀ ਮੀਂਹ।`,
+        en:       `Heavy rainfall of ${rainfall.toFixed(1)}mm recorded in ${demo.district}. River discharge ${discharge ? discharge.toFixed(0) + 'm³/s, ' : ''}level at ${riverLevel}m. Immediate precaution advised.`,
+        hi:       `${demo.district} में ${rainfall.toFixed(1)}mm भारी वर्षा। नदी स्तर ${riverLevel}m — तत्काल सावधानी बरतें।`,
+        regional: `${demo.district} ਵਿੱਚ ${rainfall.toFixed(1)}mm ਭਾਰੀ ਮੀਂਹ। ਦਰਿਆ ${riverLevel}m — ਤੁਰੰਤ ਸੁਚੇਤ ਰਹੋ।`,
       },
       DROUGHT: {
-        en:       `Critically low rainfall of only ${demo.rain}mm in ${demo.district}. Soil moisture at ${demo.soil}%.`,
-        hi:       `${demo.district} में केवल ${demo.rain}mm — सूखे का संकेत। मिट्टी नमी ${demo.soil}%।`,
-        regional: `${demo.district} ਵਿੱਚ ਸੋਕੇ ਦਾ ਖ਼ਤਰਾ।`,
+        en:       `Critically low rainfall of only ${rainfall.toFixed(1)}mm in ${demo.district}. Temperature ${temperature.toFixed(1)}°C. Soil moisture at ${soilPct}%. Drought risk is high.`,
+        hi:       `${demo.district} में केवल ${rainfall.toFixed(1)}mm — सूखे का संकेत। तापमान ${temperature.toFixed(1)}°C। मिट्टी नमी ${soilPct}%।`,
+        regional: `${demo.district} ਵਿੱਚ ਸੋਕੇ ਦਾ ਖ਼ਤਰਾ। ਵਰਖਾ ${rainfall.toFixed(1)}mm।`,
       },
       GROUNDWATER: {
-        en:       `Groundwater stress in ${demo.district}. Soil moisture critically low at ${demo.soil}%.`,
-        hi:       `${demo.district} में भूजल संकट। मिट्टी नमी ${demo.soil}%।`,
-        regional: `${demo.district} ਵਿੱਚ ਭੂਜਲ ਸੰਕਟ।`,
+        en:       `Groundwater stress in ${demo.district}. Soil moisture critically low at ${soilPct}%. Temperature ${temperature.toFixed(1)}°C.`,
+        hi:       `${demo.district} में भूजल संकट। मिट्टी नमी ${soilPct}%। तापमान ${temperature.toFixed(1)}°C।`,
+        regional: `${demo.district} ਵਿੱਚ ਭੂਜਲ ਸੰਕਟ। ਮਿੱਟੀ ਨਮੀ ${soilPct}%।`,
       },
     };
 
@@ -186,18 +232,18 @@ router.post('/demo/trigger', async (req, res) => {
         alert_id:            alertId,
         district:            demo.district,
         state:               demo.state,
-        alert_type:          demo.type,
+        alert_type:          alertType,
         risk_level:          riskLevel,
         initial_confidence:  confidence,
         current_confidence:  confidence,
         confidence_label:    riskLevel,
-        alert_text_en:       alertTexts[demo.type].en,
-        alert_text_hi:       alertTexts[demo.type].hi,
-        alert_text_regional: alertTexts[demo.type].regional,
-        rainfall_mm:         demo.rain,
-        river_level_m:       demo.river,
-        soil_moisture_pct:   demo.soil,
-        temperature_c:       demo.type === 'DROUGHT' ? 42 : 28,
+        alert_text_en:       alertTexts[alertType].en,
+        alert_text_hi:       alertTexts[alertType].hi,
+        alert_text_regional: alertTexts[alertType].regional,
+        rainfall_mm:         Math.round(rainfall * 10) / 10,
+        river_level_m:       riverLevel,
+        soil_moisture_pct:   soilPct,
+        temperature_c:       Math.round(temperature * 10) / 10,
         reporters_pinged:    reporters?.length || 0,
         email_sent_to:       emailRecipients,
         status:              'DISPATCHED',
@@ -240,13 +286,14 @@ router.post('/demo/trigger', async (req, res) => {
         reporterName: reporter.name,
         alertId,
         district:     demo.district,
-        alertType:    demo.type,
-        alertHindi:   alertTexts[demo.type].hi,
+        alertType,
+        alertHindi:   alertTexts[alertType].hi,
       }).catch(e => console.error('[TG PING]', e.message));
     }
 
-    res.json({ success: true, alertId, alert: fullAlert });
+    res.json({ success: true, alertId, alert: fullAlert, source: 'open-meteo-live' });
   } catch (err) {
+    console.error('[DEMO TRIGGER]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

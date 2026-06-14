@@ -14,34 +14,51 @@ export default function App() {
   const { alerts, setAlerts, stats } = useAlerts();
   useWebSocket(setAlerts);
 
+  const TAB_TITLE = {
+    dashboard:   'Overview',
+    alerts:      'Alert Feed',
+    map:         'District Map',
+    groundtruth: 'Ground Truth',
+    grievances:  'Grievances',
+  };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--canvas)' }}>
       <Sidebar tab={tab} setTab={setTab} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Top bar */}
         <header style={{
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '14px 28px',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
+          padding: '0 28px',
+          height: 52,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           position: 'sticky',
           top: 0,
-          zIndex: 10,
+          zIndex: 20,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>💧</span>
-            <div>
-              <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>AquaAlert</h1>
-              <p style={{ fontSize: 11, color: '#64748b' }}>National Water Early Warning System</p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'var(--text-3)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}>
+              AquaAlert
+            </span>
+            <span style={{ color: 'var(--border)', fontSize: 16 }}>/</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
+              {TAB_TITLE[tab]}
+            </span>
           </div>
-          <LiveDot />
+          <LiveIndicator />
         </header>
 
-        <main style={{ flex: 1, padding: '20px 28px', overflowY: 'auto' }}>
+        <main style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
           <StatsBar stats={stats} />
           {tab === 'dashboard'   && <Dashboard alerts={alerts} stats={stats} />}
           {tab === 'alerts'      && <AlertFeed alerts={alerts} />}
@@ -54,18 +71,16 @@ export default function App() {
   );
 }
 
-function LiveDot() {
+function LiveIndicator() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       <span style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: '#22c55e',
-        boxShadow: '0 0 0 3px #dcfce7',
-        animation: 'pulse 2s infinite',
+        width: 7, height: 7, borderRadius: '50%',
+        background: '#34c759',
         display: 'inline-block',
+        animation: 'livePulse 2s ease infinite',
       }} />
-      <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 500 }}>Live</span>
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <span style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500 }}>Live</span>
     </div>
   );
 }

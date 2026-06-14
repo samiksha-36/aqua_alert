@@ -1,10 +1,13 @@
 import os
 import httpx
 
-DEMO_EMAIL_RECIPIENTS = [
-    "samikshakhaire05@gmail.com",
-    "kaushishsaksha@gmail.com",
-]
+import os
+
+def _get_email_recipients():
+    env_val = os.getenv("ALERT_EMAIL_RECIPIENTS", "")
+    if env_val:
+        return [e.strip() for e in env_val.split(",") if e.strip()]
+    return ["samikshakhaire05@gmail.com", "kaushishsaksham@gmail.com"]
 
 async def dispatch_node(state: dict) -> dict:
     """
@@ -31,7 +34,7 @@ async def dispatch_node(state: dict) -> dict:
                     "soil_moisture_pct": alert["soil_moisture_pct"],
                     "temperature_c":     alert["temperature_c"],
                 },
-                "emailRecipients": DEMO_EMAIL_RECIPIENTS,
+                "emailRecipients": _get_email_recipients(),
             }
             try:
                 r = await client.post(f"{backend_url}/api/alerts", json=payload)

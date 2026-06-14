@@ -2,7 +2,7 @@ import os
 import asyncio
 import httpx
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 async def generate_alert_node(state: dict) -> dict:
     """
@@ -63,7 +63,6 @@ Return exactly this JSON:
 
     raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-    # Strip markdown code fences if present
     if raw_text.startswith("```"):
         raw_text = raw_text.split("\n", 1)[1]
         raw_text = raw_text.rsplit("```", 1)[0]
