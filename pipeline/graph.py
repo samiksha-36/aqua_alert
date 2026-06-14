@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, END
 from nodes.ingest            import ingest_node
 from nodes.validate          import validate_node
 from nodes.retrieve_context  import retrieve_context_node
-from nodes.impact_analysis   import impact_node
+from nodes.impact_analysis   import impact_node_sync as impact_node
 from nodes.generate_alert    import generate_alert_node
 from nodes.confidence_check  import confidence_check_node
 from nodes.dispatch          import dispatch_node

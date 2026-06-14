@@ -1,5 +1,6 @@
 import asyncio
 from dotenv import load_dotenv
+from datetime import datetime 
 load_dotenv()
 
 from fastapi import FastAPI, BackgroundTasks
@@ -12,8 +13,23 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 pipeline = build_graph()
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    imd_connected = False
+    if os.getenv("IMD_API_KEY"):
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                r = await client.get(
+                    "https://api.imd.gov.in/api/v1/districtrainfall?id=327",
+                    headers={"x-api-key": os.getenv("IMD_API_KEY")}
+                )
+                imd_connected = r.status_code == 200
+        except Exception:
+            imd_connected = False
+    return {
+        "status":        "ok",
+        "imd_connected": imd_connected,
+        "time":          datetime.utcnow().isoformat(),
+    }
 
 @app.post("/run")
 async def run_pipeline(background_tasks: BackgroundTasks):

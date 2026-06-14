@@ -6,10 +6,43 @@ const RISK_HEX   = { LOW: '#276749',      MODERATE: '#b7791f',      HIGH: '#c530
 
 export default function Dashboard({ alerts, stats }) {
   const [grievanceSummary, setGrievanceSummary] = useState(null);
-  const [pipelineStatus, setPipelineStatus]     = useState(null);
+  const [pipelineStatus,  setPipelineStatus]  = useState(null);
+  const [backendStatus,   setBackendStatus]   = useState('checking');
+  const [wsStatus,        setWsStatus]        = useState('checking');
+  const [supabaseStatus,  setSupabaseStatus]  = useState('checking');
+  const [imdStatus,       setImdStatus]       = useState('checking');
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/grievances?limit=100`)
+    const backend = import.meta.env.VITE_BACKEND_URL || '';
+
+    // Backend API health
+    fetch(`${backend}/api/health`)
+      .then(r => r.json())
+      .then(d => {
+        setBackendStatus(d.status === 'ok' ? 'online' : 'degraded');
+        setWsStatus(d.websocket === true ? 'online' : 'offline');
+      })
+      .catch(() => { setBackendStatus('offline'); setWsStatus('offline'); });
+
+    // LangGraph pipeline health
+    fetch('http://localhost:8000/health')
+      .then(r => r.json())
+      .then(d => setPipelineStatus(d.status === 'ok' ? 'online' : 'offline'))
+      .catch(() => setPipelineStatus('offline'));
+
+    // Supabase — lightweight alerts query
+    fetch(`${backend}/api/alerts?limit=1`)
+      .then(r => r.ok ? setSupabaseStatus('online') : setSupabaseStatus('degraded'))
+      .catch(() => setSupabaseStatus('offline'));
+
+    // IMD API — check via pipeline health endpoint which reports IMD connectivity
+    fetch('http://localhost:8000/health')
+      .then(r => r.json())
+      .then(d => setImdStatus(d.imd_connected === true ? 'online' : d.imd_connected === false ? 'offline' : 'checking'))
+      .catch(() => setImdStatus('offline'));
+
+    // Grievances
+    fetch(`${backend}/api/grievances?limit=100`)
       .then(r => r.json())
       .then(d => {
         if (!d.success) return;
@@ -21,11 +54,6 @@ export default function Dashboard({ alerts, stats }) {
           critical:   g.filter(x => x.severity === 'CRITICAL').length,
         });
       }).catch(() => {});
-
-    fetch('http://localhost:8000/health')
-      .then(r => r.json())
-      .then(d => setPipelineStatus(d.status === 'ok' ? 'online' : 'offline'))
-      .catch(() => setPipelineStatus('offline'));
   }, []);
 
   const recentAlerts  = alerts.slice(0, 5);
@@ -80,10 +108,11 @@ export default function Dashboard({ alerts, stats }) {
             System Status
           </p>
           {[
-            { label: 'Backend API',  status: 'online'                    },
-            { label: 'LangGraph',    status: pipelineStatus || 'checking' },
-            { label: 'WebSocket',    status: 'online'                    },
-            { label: 'Supabase DB',  status: 'online'                    },
+            { label: 'Backend API',  status: backendStatus                 },
+            { label: 'LangGraph',    status: pipelineStatus || 'checking'  },
+            { label: 'WebSocket',    status: wsStatus                      },
+            { label: 'Supabase DB',  status: supabaseStatus                },
+            { label: 'IMD API',      status: imdStatus                     },
           ].map(s => (
             <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.label}</span>

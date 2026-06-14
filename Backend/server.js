@@ -20,7 +20,7 @@ app.use('/api/reporters',  reporterRoutes);
 app.use('/api/grievances', grievanceRoutes);
 app.use('/api/telegram',   telegramRoutes);
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+app.get('/api/health', (_, res) => res.json({ status: 'ok', websocket: true, time: new Date().toISOString() }));
 
 initWebSocket(server);
 
