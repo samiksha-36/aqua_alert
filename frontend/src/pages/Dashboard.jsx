@@ -10,7 +10,7 @@ export default function Dashboard({ alerts, stats }) {
   const [backendStatus,   setBackendStatus]   = useState('checking');
   const [wsStatus,        setWsStatus]        = useState('checking');
   const [supabaseStatus,  setSupabaseStatus]  = useState('checking');
-  const [imdStatus,       setImdStatus]       = useState('checking');
+  
 
   useEffect(() => {
     const backend = import.meta.env.VITE_BACKEND_URL || '';
@@ -35,12 +35,7 @@ export default function Dashboard({ alerts, stats }) {
       .then(r => r.ok ? setSupabaseStatus('online') : setSupabaseStatus('degraded'))
       .catch(() => setSupabaseStatus('offline'));
 
-    // IMD API — check via pipeline health endpoint which reports IMD connectivity
-    fetch('http://localhost:8000/health')
-      .then(r => r.json())
-      .then(d => setImdStatus(d.imd_connected === true ? 'online' : d.imd_connected === false ? 'offline' : 'checking'))
-      .catch(() => setImdStatus('offline'));
-
+    
     // Grievances
     fetch(`${backend}/api/grievances?limit=100`)
       .then(r => r.json())
@@ -112,7 +107,7 @@ export default function Dashboard({ alerts, stats }) {
             { label: 'LangGraph',    status: pipelineStatus || 'checking'  },
             { label: 'WebSocket',    status: wsStatus                      },
             { label: 'Supabase DB',  status: supabaseStatus                },
-            { label: 'IMD API',      status: imdStatus                     },
+                                
           ].map(s => (
             <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.label}</span>
