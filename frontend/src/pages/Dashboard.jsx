@@ -25,7 +25,7 @@ export default function Dashboard({ alerts, stats }) {
       .catch(() => { setBackendStatus('offline'); setWsStatus('offline'); });
 
     // LangGraph pipeline health
-    fetch('http://localhost:8000/health')
+    fetch('https://aquaalert-pipeline.onrender.com/health')
       .then(r => r.json())
       .then(d => setPipelineStatus(d.status === 'ok' ? 'online' : 'offline'))
       .catch(() => setPipelineStatus('offline'));
